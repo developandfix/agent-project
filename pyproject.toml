@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "project-utility"
+version = "0.1.0"
+description = "A helper utility for managing coding agent projects"
+requires-python = ">=3.9"
+license = "MIT"
+
+[project.scripts]
+project = "project_utility.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+project_utility = ["templates/*"]
