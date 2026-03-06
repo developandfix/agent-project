@@ -167,9 +167,17 @@ def complete_project() -> None:
     print(f"Project '{project_dir.name}' completed and moved to .projects/completed/")
 
 
+def _resolve_claude_md(repo_root: Path) -> Path:
+    """Return the CLAUDE.md path to use: root if it exists, else .claude/."""
+    root_file = repo_root / "CLAUDE.md"
+    if root_file.exists():
+        return root_file
+    return repo_root / ".claude" / "CLAUDE.md"
+
+
 def _update_claude_md(repo_root: Path, name: str, dir_name: str, slug: str) -> None:
     """Add the active project block to CLAUDE.md."""
-    claude_md = repo_root / "CLAUDE.md"
+    claude_md = _resolve_claude_md(repo_root)
 
     block = (
         f"{CLAUDE_BLOCK_START}\n"
@@ -205,14 +213,17 @@ def _update_claude_md(repo_root: Path, name: str, dir_name: str, slug: str) -> N
 
 def _remove_claude_md_block(repo_root: Path) -> None:
     """Remove the active project block from CLAUDE.md."""
-    claude_md = repo_root / "CLAUDE.md"
-    if not claude_md.exists():
+    # Check both locations — root CLAUDE.md and .claude/CLAUDE.md
+    root_file = repo_root / "CLAUDE.md"
+    dot_claude_file = repo_root / ".claude" / "CLAUDE.md"
+    if root_file.exists() and CLAUDE_BLOCK_START in root_file.read_text():
+        claude_md = root_file
+    elif dot_claude_file.exists() and CLAUDE_BLOCK_START in dot_claude_file.read_text():
+        claude_md = dot_claude_file
+    else:
         return
 
     content = claude_md.read_text()
-    if CLAUDE_BLOCK_START not in content:
-        return
-
     content = re.sub(
         rf"\n?{re.escape(CLAUDE_BLOCK_START)}.*?{re.escape(CLAUDE_BLOCK_END)}\n?",
         "",
