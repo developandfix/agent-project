@@ -55,9 +55,8 @@ def get_project_slug(project_dir: Path) -> str:
     return match.group(1) if match else name
 
 
-def init_project(name: str) -> None:
+def init_project(name: str, repo_root: Path) -> None:
     """Initialize a new project."""
-    repo_root = get_repo_root()
 
     existing = find_active_project(repo_root)
     if existing:
@@ -112,9 +111,8 @@ def init_project(name: str) -> None:
     print(f"  Workflow:  .claude/project-workflow.md")
 
 
-def show_status() -> None:
+def show_status(repo_root: Path) -> None:
     """Show the active project status."""
-    repo_root = get_repo_root()
     project_dir = find_active_project(repo_root)
 
     if not project_dir:
@@ -132,9 +130,8 @@ def show_status() -> None:
         print("(no status file found)")
 
 
-def complete_project() -> None:
+def complete_project(repo_root: Path) -> None:
     """Complete the active project."""
-    repo_root = get_repo_root()
     project_dir = find_active_project(repo_root)
 
     if not project_dir:
@@ -145,7 +142,7 @@ def complete_project() -> None:
 
     # Get latest commit info
     result = subprocess.run(
-        ["git", "log", "-1", "--format=%h %s"],
+        ["git", "-C", str(repo_root), "log", "-1", "--format=%h %s"],
         capture_output=True, text=True,
     )
     commit_info = result.stdout.strip() if result.returncode == 0 else "(no commits)"

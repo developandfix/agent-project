@@ -29,12 +29,15 @@ def main(argv: list[str] | None = None) -> None:
         parser.print_help()
         sys.exit(1)
 
+    # Require git working directory; use its root for all operations
+    repo_root = core.get_repo_root()
+
     if args.command == "init":
-        core.init_project(args.name)
+        core.init_project(args.name, repo_root)
     elif args.command == "status":
-        core.show_status()
+        core.show_status(repo_root)
     elif args.command == "complete":
-        core.complete_project()
+        core.complete_project(repo_root)
 
 
 if __name__ == "__main__":
