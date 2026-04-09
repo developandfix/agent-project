@@ -101,7 +101,7 @@ def init_project(name: str, repo_root: Path) -> None:
     shutil.copy2(workflow_src, workflow_dst)
 
     # Update CLAUDE.md
-    _update_claude_md(repo_root, name, dir_name, slug)
+    _ensure_claude_md(repo_root)
 
     print(f"Project '{name}' initialized.")
     print(f"  Directory: .projects/active/{dir_name}/")
@@ -158,9 +158,6 @@ def complete_project(repo_root: Path) -> None:
     dest = completed_dir / project_dir.name
     shutil.move(str(project_dir), str(dest))
 
-    # Clean up CLAUDE.md
-    _remove_claude_md_block(repo_root)
-
     print(f"Project '{project_dir.name}' completed and moved to .projects/completed/")
 
 
@@ -172,64 +169,35 @@ def _resolve_claude_md(repo_root: Path) -> Path:
     return repo_root / ".claude" / "CLAUDE.md"
 
 
-def _update_claude_md(repo_root: Path, name: str, dir_name: str, slug: str) -> None:
-    """Add the active project block to CLAUDE.md."""
-    claude_md = _resolve_claude_md(repo_root)
+CLAUDE_BLOCK = (
+    f"{CLAUDE_BLOCK_START}\n"
+    f"## Project Workflow\n"
+    f"\n"
+    f"This repo uses the `project` utility to manage development work.\n"
+    f"Check .projects/active/ for any active project. If one exists, read its\n"
+    f"files before starting work. See .claude/project-workflow.md for details.\n"
+    f"{CLAUDE_BLOCK_END}\n"
+)
 
-    block = (
-        f"{CLAUDE_BLOCK_START}\n"
-        f"## Active Project\n"
-        f"\n"
-        f"See .claude/project-workflow.md for full workflow documentation.\n"
-        f"\n"
-        f"Current project files:\n"
-        f"- Project: .projects/active/{dir_name}/{slug}.md\n"
-        f"- Plan: .projects/active/{dir_name}/{slug}-plan.md\n"
-        f"- Status: .projects/active/{dir_name}/{slug}-status.txt\n"
-        f"{CLAUDE_BLOCK_END}\n"
-    )
+
+def _ensure_claude_md(repo_root: Path) -> None:
+    """Ensure the project block exists in CLAUDE.md, adding or updating it if needed."""
+    claude_md = _resolve_claude_md(repo_root)
 
     if claude_md.exists():
         content = claude_md.read_text()
-        # Don't add if already present
         if CLAUDE_BLOCK_START in content:
-            # Replace existing block
-            content = re.sub(
+            # Block exists — update to latest content if changed
+            updated = re.sub(
                 rf"{re.escape(CLAUDE_BLOCK_START)}.*?{re.escape(CLAUDE_BLOCK_END)}\n?",
-                block,
+                CLAUDE_BLOCK,
                 content,
                 flags=re.DOTALL,
             )
-            claude_md.write_text(content)
+            if updated != content:
+                claude_md.write_text(updated)
         else:
             with open(claude_md, "a") as f:
-                f.write("\n" + block)
+                f.write("\n" + CLAUDE_BLOCK)
     else:
-        claude_md.write_text(block)
-
-
-def _remove_claude_md_block(repo_root: Path) -> None:
-    """Remove the active project block from CLAUDE.md."""
-    # Check both locations — root CLAUDE.md and .claude/CLAUDE.md
-    root_file = repo_root / "CLAUDE.md"
-    dot_claude_file = repo_root / ".claude" / "CLAUDE.md"
-    if root_file.exists() and CLAUDE_BLOCK_START in root_file.read_text():
-        claude_md = root_file
-    elif dot_claude_file.exists() and CLAUDE_BLOCK_START in dot_claude_file.read_text():
-        claude_md = dot_claude_file
-    else:
-        return
-
-    content = claude_md.read_text()
-    content = re.sub(
-        rf"\n?{re.escape(CLAUDE_BLOCK_START)}.*?{re.escape(CLAUDE_BLOCK_END)}\n?",
-        "",
-        content,
-        flags=re.DOTALL,
-    )
-
-    # Remove file if it's now empty
-    if content.strip():
-        claude_md.write_text(content)
-    else:
-        claude_md.unlink()
+        claude_md.write_text(CLAUDE_BLOCK)
